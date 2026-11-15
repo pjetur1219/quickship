@@ -1,0 +1,82 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Customer {
+  id        String     @id @default(uuid())
+  name      String
+  email     String
+  phone     String
+  addresses Address[]
+  shipments Shipment[]
+}
+
+model Courier {
+  id                  String               @id @default(uuid())
+  name                String
+  email               String
+  phone               String
+  deliveryAssignments DeliveryAssignment[]
+}
+
+model Address {
+  id                String     @id @default(uuid())
+  street            String
+  city              String
+  postalCode        String
+  country           String
+  customerId        String?
+  customer          Customer?  @relation(fields: [customerId], references: [id])
+  pickupShipments   Shipment[] @relation("PickupAddress")
+  deliveryShipments Shipment[] @relation("DeliveryAddress")
+}
+
+model Shipment {
+  id                  String                  @id @default(uuid())
+  trackingNumber      String                  @unique
+  customerId          String
+  pickupAddressId     String
+  deliveryAddressId   String
+  status              String
+  customer            Customer                @relation(fields: [customerId], references: [id])
+  pickupAddress       Address                 @relation("PickupAddress", fields: [pickupAddressId], references: [id])
+  deliveryAddress     Address                 @relation("DeliveryAddress", fields: [deliveryAddressId], references: [id])
+  packages            Package[]
+  statusHistory       ShipmentStatusHistory[]
+  deliveryAssignments DeliveryAssignment[]
+}
+
+model Package {
+  id         String   @id @default(uuid())
+  shipmentId String
+  weight     Decimal
+  length     Decimal
+  width      Decimal
+  height     Decimal
+  shipment   Shipment @relation(fields: [shipmentId], references: [id])
+}
+
+model ShipmentStatusHistory {
+  id         String   @id @default(uuid())
+  shipmentId String
+  status     String
+  createdAt  DateTime @default(now())
+  shipment   Shipment @relation(fields: [shipmentId], references: [id])
+}
+
+model DeliveryAssignment {
+  id         String   @id @default(uuid())
+  shipmentId String
+  courierId  String
+  assignedAt DateTime @default(now())
+  shipment   Shipment @relation(fields: [shipmentId], references: [id])
+  courier    Courier  @relation(fields: [courierId], references: [id])
+}
